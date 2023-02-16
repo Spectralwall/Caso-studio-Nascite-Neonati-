@@ -4,6 +4,7 @@
 library(moments)
 library(ggplot2)
 library(grid)
+library(ggthemes)
 
 #FUNZIONI
 
@@ -32,6 +33,21 @@ AnalisiGenelare <- function(x,y){
   png("report.png", height = 30*nrow(df_all), width = 200*ncol(df_all))
   grid.table(df_all)
   dev.off()
+  
+  ggplot()+
+    geom_density(aes(x=x),col="darkblue",fill="lightblue")+
+    geom_vline(aes(xintercept=mean(x)),
+               color="red", linetype="dashed", size=1)+
+    geom_vline(aes(xintercept=quantile(x,seq(0,1,0.25))),
+               color="green3", linetype="dashed", size=1)+
+    geom_vline(aes(xintercept=median(x)),
+               color="orange", linetype="dashed", size=1)+
+    geom_vline(aes(xintercept=Mode(x)),
+               color="yellow", linetype="dashed", size=1)+
+    xlab("Sales")+
+    ylab("Density")+
+    labs(title = "Distribuzione Sales")+
+    theme_fivethirtyeight()
 }
 
 #import dataset
