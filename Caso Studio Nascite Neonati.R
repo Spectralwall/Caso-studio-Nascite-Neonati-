@@ -3,6 +3,7 @@
 #IMPORT
 library(moments)
 library(ggplot2)
+library(grid)
 
 #FUNZIONI
 
@@ -12,24 +13,25 @@ Mode <- function(x) {
   ux[which.max(tabulate(match(x, ux)))]
 }
 
-#funzione che fa tutti le analisi di base di una variabile
-AnalisiGenelare <- function(x){
+#COEFFIECENTE DI VARIAZIONE
+CV <- function(x){
+  return((sd(x)/mean(x))*100)
+} 
+
+#funzione che genera una tabella contenente tutti gli indici di una variabile
+#indici di posizione, variabilità e forma
+AnalisiGenelare <- function(x,y){
   
-  su
-  
-  return(
-    list(
-      summary(x),#summary
-      mean(x),#media
-      sd(x),#deviazione standard
-      var(x),#varianza
-      max(x)-min(x),#range
-      IQR(x),#range interquantile
-      skewness(x),#assimetria
-      kurtosis(x)-3#curtosi
-    )
-  )
-  
+  df=as.data.frame(cbind(summary(x)))
+  colnames(df)<-c(y)
+  df2=data.frame(summary=c(max(x)-min(x),IQR(x),Mode(x),var(x),
+                              sd(x),CV(x),skewness(x),kurtosis(x)-3))
+  rownames(df2) <- c("Range","IQR","Mode","Var","SD","CV","Asymmetry","Curtosi")
+  colnames(df2)<-c(y)
+  df_all = rbind(df,df2)
+  png("report.png", height = 30*nrow(df_all), width = 200*ncol(df_all))
+  grid.table(df_all)
+  dev.off()
 }
 
 #import dataset
