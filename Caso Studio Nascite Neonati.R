@@ -3,6 +3,7 @@
 #IMPORT
 library(moments)
 library(ggplot2)
+library(gridExtra)
 library(grid)
 library(ggthemes)
 
@@ -19,9 +20,20 @@ CV <- function(x){
   return((sd(x)/mean(x))*100)
 } 
 
+#INDICE DI ETEROGENEITA DI GINI Normalizzato
+G <- function(x){
+  ni=table(x) #frequenze assolute
+  fi=ni/length(x)#frequenze relative
+  fi2 = fi^2 #frequenze relative al quadrato
+  J = length(table(x)) #tipi di classi che abbiamo
+  gini = 1-sum(fi2) #G=1-sommatoria di frequenze relative al quadrato
+  gini_norm = gini/((J-1)/J)
+  return(gini_norm)
+}
+
 #funzione che genera una tabella contenente tutti gli indici di una variabile
 #indici di posizione, variabilità e forma
-AnalisiGenelare <- function(x,y){
+analisi.quantitative <- function(x,y){
   
   df=as.data.frame(cbind(summary(x)))
   colnames(df)<-c(y)
@@ -29,6 +41,7 @@ AnalisiGenelare <- function(x,y){
                               sd(x),CV(x),skewness(x),kurtosis(x)-3))
   rownames(df2) <- c("Range","IQR","Mode","Var","SD","CV","Asymmetry","Curtosi")
   colnames(df2)<-c(y)
+  
   df_all = rbind(df,df2)
   png("report.png", height = 30*nrow(df_all), width = 200*ncol(df_all))
   grid.table(df_all)
@@ -37,18 +50,40 @@ AnalisiGenelare <- function(x,y){
   ggplot()+
     geom_density(aes(x=x),col="darkblue",fill="lightblue")+
     geom_vline(aes(xintercept=mean(x)),
-               color="red", linetype="dashed", size=1)+
+               color="red", linetype="dashed", linewidth=1)+
     geom_vline(aes(xintercept=quantile(x,seq(0,1,0.25))),
-               color="green3", linetype="dashed", size=1)+
+               color="green3", linetype="dashed", linewidth=1)+
     geom_vline(aes(xintercept=median(x)),
-               color="orange", linetype="dashed", size=1)+
+               color="orange", linetype="dashed", linewidth=1)+
     geom_vline(aes(xintercept=Mode(x)),
-               color="yellow", linetype="dashed", size=1)+
+               color="yellow", linetype="dashed", linewidth=1)+
     xlab("Sales")+
     ylab("Density")+
     labs(title = "Distribuzione Sales")+
     theme_fivethirtyeight()
 }
+
+#funzione che fa un analisi compleata delle variabili quantitative
+#esegue tabelle di frequenza assoluta, relativa, cumulata e indice di gini
+analisi.qualitative <- function(x){
+  n=length(x)
+  ni=table(x)
+  fi=table(x)/n
+  Ni=cumsum(table(x))
+  Fi=cumsum(table(x))/n
+  
+  df=as.data.frame(cbind(ni,fi,Ni,Fi))
+  
+  png("Frequenze.png", height = 50*nrow(df), width = 100*ncol(df))
+  grid.table(df)
+  dev.off()
+  
+  
+  png("Gini.png", height = 50*nrow(df), width = 100*ncol(df))
+  grid.table(data.frame(Gini=c(G(x))))
+  dev.off()
+}
+
 
 #import dataset
 setwd("C:\\Users\\gabri\\Desktop\\PrivateProject\\Caso-studio-Nascite-Neonati-")
