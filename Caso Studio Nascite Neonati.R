@@ -1,11 +1,15 @@
 #ANALISI NASCITE NEONATI
 
+#Install
+install.packages("PerformanceAnalytics")
+
 #IMPORT
 library(moments)
 library(ggplot2)
 library(gridExtra)
 library(grid)
 library(ggthemes)
+library(PerformanceAnalytics)
 
 #FUNZIONI
 
@@ -61,6 +65,20 @@ analisi.quantitative <- function(x,y){
     ylab("Density")+
     labs(title = "Distribuzione Sales")+
     theme_fivethirtyeight()
+  print("Summary, Range, Range Interquantile, Moda, Variaza, Devizione standard, Coefficente di variazione, Assiemtria, Curtosi")
+  return(
+    list(
+      summary(x),
+      max(x)-min(x),
+      IQR(x),
+      Mode(x),
+      var(x),
+      sd(x),
+      CV(x),
+      skewness(x),
+      kurtosis(x)-3
+    )
+  )
 }
 
 #funzione che fa un analisi compleata delle variabili quantitative
@@ -106,7 +124,20 @@ table(neonati.filtrato$Anni.madre)
 
 #Analisi variabili
 
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r)
+}
 
+x11()
+pairs(neonati,upper.panel = panel.smooth,lower.panel = panel.cor)
+
+chart.Correlation(neonati,histogram=TRUE, pch=19)
 
 
 
