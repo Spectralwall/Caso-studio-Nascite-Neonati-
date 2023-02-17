@@ -1,8 +1,5 @@
 #ANALISI NASCITE NEONATI
 
-#Install
-install.packages("PerformanceAnalytics")
-
 #IMPORT
 library(moments)
 library(ggplot2)
@@ -37,7 +34,7 @@ G <- function(x){
 
 #funzione che genera una tabella contenente tutti gli indici di una variabile
 #indici di posizione, variabilità e forma
-analisi.quantitative <- function(x,y){
+analisi.quantitative <- function(x,y,z){
   
   df=as.data.frame(cbind(summary(x)))
   colnames(df)<-c(y)
@@ -47,11 +44,12 @@ analisi.quantitative <- function(x,y){
   colnames(df2)<-c(y)
   
   df_all = rbind(df,df2)
-  png("report.png", height = 30*nrow(df_all), width = 200*ncol(df_all))
+  png("report.png", height = 30*nrow(df_all), width = 250*ncol(df_all))
   grid.table(df_all)
   dev.off()
   
-  ggplot()+
+  
+  plot=ggplot()+
     geom_density(aes(x=x),col="darkblue",fill="lightblue")+
     geom_vline(aes(xintercept=mean(x)),
                color="red", linetype="dashed", linewidth=1)+
@@ -63,11 +61,13 @@ analisi.quantitative <- function(x,y){
                color="yellow", linetype="dashed", linewidth=1)+
     xlab("Sales")+
     ylab("Density")+
-    labs(title = "Distribuzione Sales")+
+    labs(title = c(z))+
     theme_fivethirtyeight()
-  print("Summary, Range, Range Interquantile, Moda, Variaza, Devizione standard, Coefficente di variazione, Assiemtria, Curtosi")
+  
+  print("Distribuzione, Summary, Range, Range Interquantile, Moda, Variaza, Devizione standard, Coefficente di variazione, Assiemtria, Curtosi")
   return(
     list(
+      plot,
       summary(x),
       max(x)-min(x),
       IQR(x),
@@ -97,33 +97,44 @@ analisi.qualitative <- function(x){
   dev.off()
   
   
-  png("Gini.png", height = 50*nrow(df), width = 100*ncol(df))
+  png("Gini.png", height = 50*nrow(df), width = 50*ncol(df))
   grid.table(data.frame(Gini=c(G(x))))
   dev.off()
 }
 
 
 #import dataset
+
+#se computer portatile
 setwd("C:\\Users\\gabri\\Desktop\\PrivateProject\\Caso-studio-Nascite-Neonati-")
+
+#se computer fisso
+setwd("C:\\Users\\gabri\\Desktop\\Private Project\\Caso-studio-Nascite-Neonati-")
 
 neonati <- read.csv("neonati.csv",stringsAsFactors = T)
 
 attach(neonati)
 head(neonati)
 summary(neonati)
-detach(neonati)
 
-table(neonati$Anni.madre)
-
-#rimuoviamo dal dataset tutte le registrazioni in cui gli anni della madre sono minori di 12
-#di solito la possibilià di rimanere incinete avviene con il primo ciclo che è intorno al 12 anno di età
-neonati.filtrato <- subset(neonati,Anni.madre>=12)
-attach(neonati.filtrato)
-
-table(neonati.filtrato$Anni.madre)
 
 #Analisi variabili
 
+#Anni madre---------------------------------------------------------------------
+summary(neonati$Anni.madre)
+table(neonati$Anni.madre)#ci sono due valori fuori scala
+detach(neonati)
+
+#rimuoviamo dal dataset tutte le registrazioni in cui gli anni della madre sono minori di 12
+#di solito la possibilià di rimanere incinete avviene in concomitanza con l'inzio il primo ciclo che è intorno al 12 anno di età
+neonati.filtrato <- subset(neonati,Anni.madre>=12)
+attach(neonati.filtrato)
+table(neonati.filtrato$Anni.madre)
+
+summary.anni.madre=analisi.quantitative(Anni.madre,"Anni Madre","Distribuzione Anni Madre")
+summary.anni.madre
+
+#matrice di correlazione
 panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 {
   par(usr = c(0, 1, 0, 1))
