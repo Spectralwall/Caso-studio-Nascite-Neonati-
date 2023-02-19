@@ -32,6 +32,16 @@ G <- function(x){
   return(gini_norm)
 }
 
+#funzione che data una variabile quantitava divisa in classi calcola la distribuzione assoluta
+distribuzione_assoluta <- function(x){
+  n=length(x)
+  ni=table(x)
+  fi=table(x)/n
+  Ni=cumsum(table(x))
+  Fi=cumsum(table(x))/n
+  return(as.data.frame(cbind(ni,fi,Ni,Fi)))
+}
+
 #funzione che genera una tabella contenente tutti gli indici di una variabile
 #indici di posizione, variabilità e forma
 analisi.quantitative <- function(x,y,z){
@@ -44,7 +54,7 @@ analisi.quantitative <- function(x,y,z){
   colnames(df2)<-c(y)
   
   df_all = rbind(df,df2)
-  png("report.png", height = 30*nrow(df_all), width = 250*ncol(df_all))
+  png("report.png", height = 24*nrow(df_all), width = 215*ncol(df_all))
   grid.table(df_all)
   dev.off()
   
@@ -102,6 +112,23 @@ analisi.qualitative <- function(x){
   dev.off()
 }
 
+#funzione che data una variabile quantitativa e una sequenza di valori
+#divide la variabile in classi e stampa un grafico a barre
+analisi.classi <- function(x,y){
+  classi = cut(x,y)#divisa in 7 classi da 1 centimetro l'uno
+  
+  df_freq = distribuzione_assoluta(classi)
+  
+  ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=fi,fill=row.names(df_freq))) +
+    geom_bar(stat="identity")+
+    labs(title="Distribuzione in classi",
+         x="Classi",
+         y="Frequenza")+
+    theme_fivethirtyeight()+
+    theme(axis.title = element_text())+
+    guides(fill=guide_legend(title="Classi"))
+}
+
 
 #import dataset
 
@@ -133,6 +160,9 @@ table(neonati.filtrato$Anni.madre)
 
 summary.anni.madre=analisi.quantitative(Anni.madre,"Anni Madre","Distribuzione Anni Madre")
 summary.anni.madre
+
+analisi.classi(Anni.madre,seq(10,50,5))
+
 
 #matrice di correlazione
 panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
