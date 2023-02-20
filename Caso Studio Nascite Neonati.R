@@ -384,9 +384,10 @@ distr_freq_rel_osp_tipo_parto
 #Grafico a barro più esplicativo
 ggplot(data=neonati.filtrato, aes(x=Ospedale, y=Tipo.parto,fill=Tipo.parto)) +
   geom_bar(stat="identity")+
+  labs(title="Tipi di parti per Ospedale",x="Ospedali",y="Tipo di parto")+
   theme_fivethirtyeight()+
-  theme(axis.title = element_text())+
-  guides(fill=guide_legend(title="Classi",))
+  theme(axis.title = element_text(),axis.text.y=element_blank())+
+  guides(fill=guide_legend(title="Tipo parto"))
 
 #matrice di correlazione
 panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
