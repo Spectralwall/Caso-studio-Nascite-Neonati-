@@ -375,6 +375,18 @@ pairwise.t.test(Gestazione, Sesso,
 
 #verificare che in alcuni ospedali si facciano più parti cesari
 
+#per questa ipotesi ci basta osservare la tabella di frequenza 
+distr_freq_ass_osp_tipo_parto = table(Ospedale,Tipo.parto)
+distr_freq_ass_osp_tipo_parto
+distr_freq_rel_osp_tipo_parto = table(Ospedale,Tipo.parto)/length(Ospedale)
+distr_freq_rel_osp_tipo_parto
+
+#Grafico a barro più esplicativo
+ggplot(data=neonati.filtrato, aes(x=Ospedale, y=Tipo.parto,fill=Tipo.parto)) +
+  geom_bar(stat="identity")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  guides(fill=guide_legend(title="Classi",))
 
 #matrice di correlazione
 panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
