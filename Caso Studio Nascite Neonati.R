@@ -7,6 +7,9 @@ library(gridExtra)
 library(grid)
 library(ggthemes)
 library(PerformanceAnalytics)
+library(knitr)
+library(magrittr)
+
 
 #FUNZIONI
 
@@ -119,7 +122,7 @@ analisi.classi <- function(x,y){
   
   df_freq = distribuzione_assoluta(classi)
   
-  ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=fi,fill=row.names(df_freq))) +
+  ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
     geom_bar(stat="identity")+
     labs(title="Distribuzione in classi",
          x="Classi",
@@ -128,6 +131,9 @@ analisi.classi <- function(x,y){
     theme(axis.title = element_text())+
     guides(fill=guide_legend(title="Classi"))
 }
+
+
+format(1000, scientific = TRUE)
 
 
 #import dataset
@@ -162,6 +168,138 @@ summary.anni.madre=analisi.quantitative(Anni.madre,"Anni Madre","Distribuzione A
 summary.anni.madre
 
 analisi.classi(Anni.madre,seq(10,50,5))
+
+#Numero gravidanze--------------------------------------------------------------
+summary(neonati.filtrato$N.gravidanze)
+
+summary.n.gravidanze=analisi.quantitative(N.gravidanze,"N.Gravidanze","Distribuzione N.Gravidanze")
+summary.n.gravidanze
+
+#distribuione di frequenza numero gravidanze
+df_freq = distribuzione_assoluta(N.gravidanze)
+
+#plot ditribuzioone numero gravidanze
+ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
+  geom_bar(stat="identity")+
+  labs(title="Distribuzione in classi",
+       x="Classi",
+       y="Frequenza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  guides(fill=guide_legend(title="Classi"))
+
+#Fumatrici----------------------------------------------------------------------
+table(Fumatrici)
+
+#distribuzione assoluta
+df_freq = distribuzione_assoluta(Fumatrici)
+
+#bar plot del nostro campione per la variabile
+ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
+  geom_bar(stat="identity")+
+  labs(title="Distribuzione in classi",
+       x="Classi",
+       y="Frequenza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  scale_fill_discrete(labels = c("Fumatrici", "Non Fumatrici"))+
+  guides(fill=guide_legend(title="Classi",))
+
+#Gestazione---------------------------------------------------------------------
+table(Gestazione)
+summary(Gestazione)
+summary.gestazione=analisi.quantitative(Gestazione,"Gestazione","Distribuzione Gestazione")
+summary.gestazione
+
+analisi.classi(Gestazione,seq(25,45,4))
+
+#Peso---------------------------------------------------------------------------
+summary(Peso)
+summary.peso=analisi.quantitative(Peso,"Peso","Distribuzione Peso")
+summary.peso
+
+classi = cut(Peso,seq(0,5000,1000))
+df_freq = distribuzione_assoluta(classi)
+
+row.names(df_freq) <- c("[0,1000)","[1000,2000)","[2000,3000)","[3000,4000)","[4000,5000)") 
+
+ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
+  geom_bar(stat="identity")+
+  labs(title="Distribuzione in classi",
+       x="Classi",
+       y="Frequenza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  guides(fill=guide_legend(title="Classi"))
+
+#Lunghezza----------------------------------------------------------------------
+summary(Lunghezza)
+summary.lunghezza=analisi.quantitative(Lunghezza,"Lunghezza","Distribuzione Lunghezza")
+summary.lunghezza
+
+analisi.classi(Lunghezza,seq(300,600,100))
+
+#Cranio-------------------------------------------------------------------------
+summary(Cranio)
+summary.cranio=analisi.quantitative(Cranio,"Cranio","Distribuzione Cranio")
+summary.cranio
+
+analisi.classi(Cranio,seq(200,400,50))
+
+#Tipo parto---------------------------------------------------------------------
+table(Tipo.parto)
+
+#distribuzione assoluta
+df_freq = distribuzione_assoluta(Tipo.parto)
+
+#bar plot del nostro campione per la variabile
+ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
+  geom_bar(stat="identity")+
+  labs(title="Distribuzione in classi",
+       x="Classi",
+       y="Frequenza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  scale_fill_discrete(labels = c("Cessarion", "Naturale"))+
+  guides(fill=guide_legend(title="Classi",))
+
+#Ospedale-----------------------------------------------------------------------
+table(Ospedale)
+
+#distribuzione assoluta
+df_freq = distribuzione_assoluta(Ospedale)
+df_freq
+G(df_freq)
+
+#bar plot del nostro campione per la variabile
+ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
+  geom_bar(stat="identity")+
+  labs(title="Distribuzione in classi",
+       x="Classi",
+       y="Frequenza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  scale_fill_discrete(labels = c("Ospedale 1", "Ospedale 2", "Ospedale 3"))+
+  guides(fill=guide_legend(title="Classi",))
+
+#Ospedale-----------------------------------------------------------------------
+table(Sesso)
+
+#distribuzione assoluta
+df_freq = distribuzione_assoluta(Sesso)
+df_freq
+G(df_freq)
+
+#bar plot del nostro campione per la variabile
+ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names(df_freq))) +
+  geom_bar(stat="identity")+
+  labs(title="Distribuzione in classi",
+       x="Classi",
+       y="Frequenza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  scale_fill_discrete(labels = c("Femmine", "Maschi"))+
+  guides(fill=guide_legend(title="Classi",))
 
 
 #matrice di correlazione
