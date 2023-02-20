@@ -282,7 +282,7 @@ ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names
   scale_fill_discrete(labels = c("Ospedale 1", "Ospedale 2", "Ospedale 3"))+
   guides(fill=guide_legend(title="Classi",))
 
-#Ospedale-----------------------------------------------------------------------
+#Sesso--------------------------------------------------------------------------
 table(Sesso)
 
 #distribuzione assoluta
@@ -300,6 +300,80 @@ ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names
   theme(axis.title = element_text())+
   scale_fill_discrete(labels = c("Femmine", "Maschi"))+
   guides(fill=guide_legend(title="Classi",))
+
+#TEST IPOTESI
+
+#peso medio popolazione 3300 grammi (maschi di solito 150 grammi in più)
+#useremo un test t non avendo tutte le infomazioni della distribuzione originale
+#ipotesi nulla: che la la media del peso del nostro campione sia uguale alla media del peso della popolazione
+t.test(Peso,
+       mu=3300,
+       conf.level = 0.95, #0.95 perche 1-alfa
+       alternative = "two.sided")
+
+#calcoliamo i valori soglia
+valori.soglia = qt(c(0.05/2,1-0.05/2),Peso) 
+
+#facciamo un plot del grafo con i valori soglia e il risultato del test
+ggplot()+
+  geom_density(aes(x=rt(100000,Peso)),col="darkblue",fill="lightblue")+
+  geom_point(aes(x=-1.505,y=0),col="green4",size=4)+
+  geom_vline(aes(xintercept=valori.soglia),
+             color="red", linetype="dashed", linewidth=1)+
+  theme_fivethirtyeight()
+
+#lunghezza media popolazione 50 centimetri
+#ipotesi nulla: che la media della lunghezza del campione sia uguale alla media della lunghezza della popolazione
+t.test(Lunghezza,
+       mu=500,
+       conf.level = 0.95, #0.95 perche 1-alfa
+       alternative = "two.sided")
+
+#rifiutiamo ipotesi nulla di uguaglianza tra le distribuzioni
+#quindi la media del nostro campione è significativamete diversa da quella della popolazione
+
+#calcoliamo i valori soglia
+valori.soglia = qt(c(0.05/2,1-0.05/2),Lunghezza)
+
+#facciamo un plot del grafo con i valori soglia e il risultato del test
+ggplot()+
+  geom_density(aes(x=rt(100000,Lunghezza)),col="darkblue",fill="lightblue")+
+  geom_point(aes(x=-10.069,y=0),col="green4",size=4)+
+  geom_vline(aes(xintercept=valori.soglia),
+             color="red", linetype="dashed", linewidth=1)+
+  theme_fivethirtyeight()
+
+#verifichiamo se ci sono differenze significative tra le caratteristiche dei bambini di sesso diverso
+boxplot(Peso~Sesso)
+boxplot(Lunghezza~Sesso)
+boxplot(Cranio~Sesso)
+boxplot(Gestazione~Sesso)
+
+#test sulla lunghezza
+pairwise.t.test(Lunghezza, Sesso,
+                paired = FALSE,
+                pool.sd = TRUE,
+                p.adjust.method = "bonferroni")
+
+#test sul peso
+pairwise.t.test(Peso, Sesso,
+                paired = FALSE,
+                pool.sd = TRUE,
+                p.adjust.method = "bonferroni")
+
+#test sul cranio
+pairwise.t.test(Cranio, Sesso,
+                paired = FALSE,
+                pool.sd = TRUE,
+                p.adjust.method = "bonferroni")
+
+#test sulle settimane di gestazione
+pairwise.t.test(Gestazione, Sesso,
+                paired = FALSE,
+                pool.sd = TRUE,
+                p.adjust.method = "bonferroni")
+
+#verificare che in alcuni ospedali si facciano più parti cesari
 
 
 #matrice di correlazione
