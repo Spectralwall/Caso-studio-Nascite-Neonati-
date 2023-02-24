@@ -9,6 +9,7 @@ library(ggthemes)
 library(PerformanceAnalytics)
 library(knitr)
 library(magrittr)
+library(corrplot)
 
 
 #FUNZIONI
@@ -344,10 +345,6 @@ ggplot()+
   theme_fivethirtyeight()
 
 #verifichiamo se ci sono differenze significative tra le caratteristiche dei bambini di sesso diverso
-boxplot(Peso~Sesso)
-boxplot(Lunghezza~Sesso)
-boxplot(Cranio~Sesso)
-boxplot(Gestazione~Sesso)
 
 #test sulla lunghezza
 pairwise.t.test(Lunghezza, Sesso,
@@ -355,11 +352,27 @@ pairwise.t.test(Lunghezza, Sesso,
                 pool.sd = TRUE,
                 p.adjust.method = "bonferroni")
 
+ggplot(data=neonati.filtrato)+
+  geom_boxplot(aes(x=Sesso,y=Lunghezza,fill=Sesso))+
+  labs(title="Distribuzione Lunghezza dei neonato per sesso",
+       x="Sesso",
+       y="Lunghezza")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),legend.position='none')
+
 #test sul peso
 pairwise.t.test(Peso, Sesso,
                 paired = FALSE,
                 pool.sd = TRUE,
                 p.adjust.method = "bonferroni")
+
+ggplot(data=neonati.filtrato)+
+  geom_boxplot(aes(x=Sesso,y=Peso,fill=Sesso))+
+  labs(title="Distribuzione Peso dei neonato per sesso",
+       x="Sesso",
+       y="Peso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),legend.position='none')
 
 #test sul cranio
 pairwise.t.test(Cranio, Sesso,
@@ -367,11 +380,27 @@ pairwise.t.test(Cranio, Sesso,
                 pool.sd = TRUE,
                 p.adjust.method = "bonferroni")
 
+ggplot(data=neonati.filtrato)+
+  geom_boxplot(aes(x=Sesso,y=Cranio,fill=Sesso))+
+  labs(title="Distribuzione Grandezza cranio per sesso",
+       x="Sesso",
+       y="Cranio")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),legend.position='none')
+
 #test sulle settimane di gestazione
 pairwise.t.test(Gestazione, Sesso,
                 paired = FALSE,
                 pool.sd = TRUE,
                 p.adjust.method = "bonferroni")
+
+ggplot(data=neonati.filtrato)+
+  geom_boxplot(aes(x=Sesso,y=Gestazione,fill=Sesso))+
+  labs(title="Distribuzione Settimane Gestazione per sesso",
+       x="Sesso",
+       y="Gestazione")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text(),legend.position='none')
 
 #verificare che in alcuni ospedali si facciano più parti cesari
 
@@ -390,6 +419,8 @@ ggplot(data=neonati.filtrato, aes(x=Ospedale, y=Tipo.parto,fill=Tipo.parto)) +
   guides(fill=guide_legend(title="Tipo parto"))
 
 #matrice di correlazione
+
+#di R
 panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 {
   par(usr = c(0, 1, 0, 1))
@@ -403,7 +434,91 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 x11()
 pairs(neonati,upper.panel = panel.smooth,lower.panel = panel.cor)
 
-chart.Correlation(neonati,histogram=TRUE, pch=19)
+#con libreria esterna
+
+#creiamo un dataset secondario per togliere i dati non numerici
+neonati.numeric <- neonati.filtrato
+neonati.numeric$Tipo.parto <- ifelse(neonati.filtrato$Tipo.parto=="Nat",1,0)
+neonati.numeric$Sesso <- ifelse(neonati.filtrato$Sesso=="M",1,0)
+neonati.numeric$Ospedale <- ifelse(neonati.filtrato$Ospedale=="osp1",1,
+                                   ifelse(neonati.filtrato$Ospedale=="osp2",2,3))
+
+chart.Correlation(neonati.numeric,histogram=F, pch=19)
+#gli asterischi mostrano il livello di significativià con il pvalue 
+#p-values(0, 0.001, 0.01, 0.05, 0.1, 1) <=> symbols(“***”, “**”, “*”, “.”, " “)
+
+corrplot(cor(neonati.numeric),
+         method = "circle",       
+         order = "hclust",         # Ordering method of the matrix
+         hclust.method = "ward.D", # If order = "hclust", is the cluster method to be used
+         addrect = 2,              # If order = "hclust", number of cluster rectangles
+         rect.col = 3,             # Color of the rectangles
+         rect.lwd = 3)  
+
+#Quindi, ricordiamo che la variabile risposta è il peso
+#dalla matrice di correlazione vediamo che le variabili più correlte positivamente sono
+# 1)Lunghezza 2)Cranio 3)Gestazione 4) Sesso --> queste 4 variabili inoltre sono anche statisitcamente rilevanti
+
+#Plotiamo degli scatterplot per analizzare meglio la correlazione e vedere se ci sono iterazioni non linerari
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Lunghezza,col=Sesso))+
+  labs(title="Correlazione Peso-Lunghezza per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+#ipotiziamo un modello lineare
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Lunghezza,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Lunghezza,col=Sesso),method = "lm", size = 1)+
+  labs(title="Correlazione Peso-Lunghezza per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+#ipotiziamo una modello con crescita quadratica
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Lunghezza,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Lunghezza,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  labs(title="Correlazione Peso-Lunghezza per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+#ipotiziamo una modello con crescita logaritmica
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Lunghezza,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Lunghezza,col=Sesso),method = "lm", formula = y ~ x + log(x), size = 1)+
+  labs(title="Correlazione Peso-Lunghezza per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+#LOGARTIMICA CALZA A PENNELLO
+
+
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
+  labs(title="Correlazione Peso-Cranio per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Cranio,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  labs(title="Correlazione Peso-Cranio per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Gestazione,col=Sesso))+
+  labs(title="Correlazione Peso-Gestazione per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Gestazione,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Gestazione,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  labs(title="Correlazione Peso-Gestazione per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+
 
 
 
