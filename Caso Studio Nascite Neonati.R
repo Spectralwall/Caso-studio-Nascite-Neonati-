@@ -495,7 +495,7 @@ ggplot(data = neonati.filtrato)+
 
 #scatterplot 
 ggplot(data = neonati.filtrato)+
-  geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
+  geom_point(aes(x=Cranio,y=Peso,col=Sesso))+
   labs(title="Correlazione Peso-Cranio per Sesso")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
@@ -582,6 +582,7 @@ vif(mod3) #tutti i valori sotto 5 quindi non abbiamo multicollinearita
 #proviamo a togliere fumatrici
 mod4 <- update(mod3,~.-Fumatrici)
 summary(mod4)
+plot(mod4)
 
 anova(mod3,mod4)
 
@@ -630,52 +631,89 @@ AIC(mod5,mod6,mod7,mod8)
 BIC(mod5,mod6,mod7,mod8)
 #entrambe le stime dicono che il modello migliore e il 5
 
-#personalmente intendo tenere le variabili di controllo Anni.madre e Fumatrici poiche la qualita del modello non cambia di molto 
+#personalmente intendo tenere la variabile di controllo Fumatrici 
+#poiche la qualita del modello non cambia di molto e mi sembra una variabile di controllo da mantere
 
-vif(mod8) #test di multicollinearita per sicurezza
+#test per la multicollinearita
+vif(mod6) #test di multicollinearita per sicurezza
 
-#faccimao ora una disgnostica dei residui
+#vediamo i plot dei residui
 par(mfrow=c(2,2))
-plot(mod8)
+plot(mod6)
 
-#test sui residui
+par(mfrow=c(1,1))
+plot(mod6, 1, id.n = 5)
+plot(mod6, 2, id.n = 5)
+plot(mod6, 3, id.n = 5)
+plot(mod6, 4, id.n = 5)
+plot(mod6, 5, id.n = 5)
+
+#facciamo dei test sui residui
 
 #test di normalita --> ipotes di normalita
-shapiro.test(residuals(mod8))#Rifiutiamo il test di nornalita
+shapiro.test(residuals(mod6))#Rifiutiamo il test di nornalita
 #quindi i residui non sono perfettamente normali
 
 #test di Omoschedasticità --> ipotesi di omoschedacita
-bptest(mod8)#rifiutiamo ipotesi o (NOT STONCKS)
+bptest(mod6)#rifiutiamo ipotesi di non omoschedasticita (NOT STONCKS)
+#il modello e omoschedastico aka a poca varianza
 
 #test di incorellazione 
-dwtest(mod8)#Accetriamo ipoetesi (quindi non ce incorelazione)
+dwtest(mod6)#Accetriamo ipoetesi (quindi non ce incorelazione)
 
+#facciamo ora qualche test sui leverage ed outliars
 
-#LEVERAGE
-#calcolimao i leverage
-par(mfrow=c(1,1))
-lev <- hatvalues(mod8)
-plot(lev)
-#definiamo un valore soglia
-p=sum(lev)
-n<- nrow(neonati.filtrato)
-soglia=2*p/n
-abline(h= soglia,col=2)
-
-#stampiamole
-lev[lev>soglia]#queste sono le osservazioni più lontane rispetto alle altre nello spazio dei regressori
-
-#OUTLIARS
-plot(rstudent(mod8))
-abline(h=c(-2,2),col=2)
-
-#ce anche una funzione di MASS
-outlierTest(mod8)
+#Funzione per evidenziare gli outliars
+outlierTest(mod6)
 
 #per valutare sia leverers che outliars abbiamo la distanza di cook
-cook<-cooks.distance(mod8)
-plot(cook)
+cook<-cooks.distance(mod6)
+# Cook's distance
+plot(mod6, 5, id.n = 5)
+plot(mod6, 4, id.n = 5)
 max(cook)
+
+#dalle analisi notiamo che abbiamo un punto outliars in particolare che influneza il dataset, ovvero la registrazione 1551
+#proviamo a toglierla e riseguire il modello
+
+neonati.filtrato2= neonati.filtrato[-1549,] 
+
+mod9<- lm(I(log(Peso))~
+            N.gravidanze+
+            I(log(Gestazione))+
+            I(log(Lunghezza))+
+            I(log(Cranio))+
+            Tipo.parto+
+            Fumatrici+
+            Sesso,
+          data=neonati.filtrato2)
+summary(mod9)
+
+#Rieseguiamo i test
+#test di normalita --> ipotes di normalita
+shapiro.test(residuals(mod9))#Rifiutiamo il test di nornalita
+#quindi i residui non sono perfettamente normali
+
+#test di Omoschedasticità --> ipotesi di omoschedacita
+bptest(mod9)#rifiutiamo ipotesi di non omoschedasticita (NOT STONCKS)
+#il modello e omoschedastico aka a poca varianza
+
+#test di incorellazione 
+dwtest(mod9)#Accetriamo ipoetesi (quindi non ce incorelazione)
+
+par(mfrow=c(2,2))
+plot(mod9)
+
+outlierTest(mod9)
+
+#per valutare sia leverers che outliars abbiamo la distanza di cook
+cook<-cooks.distance(mod9)
+# Cook's distance
+par(mfrow=c(1,1))
+plot(mod9, 5, id.n = 5)
+plot(mod9, 4, id.n = 5)
+max(cook)
+
 
 
 
