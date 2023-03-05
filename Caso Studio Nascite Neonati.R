@@ -10,6 +10,8 @@ library(PerformanceAnalytics)
 library(knitr)
 library(magrittr)
 library(corrplot)
+library(car)
+library(lmtest)
 
 
 #FUNZIONI
@@ -331,7 +333,7 @@ t.test(Lunghezza,
        alternative = "two.sided")
 
 #rifiutiamo ipotesi nulla di uguaglianza tra le distribuzioni
-#quindi la media del nostro campione è significativamete diversa da quella della popolazione
+#quindi la media di lunghezza del nostro campione è significativamete diversa da quella della popolazione
 
 #calcoliamo i valori soglia
 valori.soglia = qt(c(0.05/2,1-0.05/2),Lunghezza)
@@ -491,13 +493,14 @@ ggplot(data = neonati.filtrato)+
   theme(axis.title = element_text())
 #LOGARTIMICA CALZA A PENNELLO
 
-
+#scatterplot 
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
   labs(title="Correlazione Peso-Cranio per Sesso")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+#modello lineare con crescita quadratica
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
   stat_smooth(aes(x=Peso,y=Cranio,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
@@ -505,23 +508,174 @@ ggplot(data = neonati.filtrato)+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+#mnodello lineare con cresciata logaritmica
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Cranio,col=Sesso),method = "lm", formula = y ~ x + log(x), size = 1)+
+  labs(title="Correlazione Peso-Cranio per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+#scatterplot
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Gestazione,col=Sesso))+
   labs(title="Correlazione Peso-Gestazione per Sesso")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+#crescita logaritmica
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Gestazione,col=Sesso))+
-  stat_smooth(aes(x=Peso,y=Gestazione,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  stat_smooth(aes(x=Peso,y=Gestazione,col=Sesso),method = "lm", formula = y ~ x + log(x), size = 1)+
   labs(title="Correlazione Peso-Gestazione per Sesso")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+#in tutte queste variabili i dati crescono in modo logaritmico
+
+#ma ce un problema nello studio di queste variabili,aho paura che alcune siano troppo correlate e diano problemi di multicollinearita
+#mqa verifichiamolo, costruiamo un modello
+mod1<- lm(Peso~
+            Anni.madre+
+            N.gravidanze+
+            Gestazione+
+            Lunghezza+
+            Cranio+
+            Fumatrici+
+            Tipo.parto+
+            Ospedale+
+            Sesso,
+          data=neonati.filtrato)
+summary(mod1)
+
+#sinceramente mi sento di rimuovere da questo modello la variabile ospedale poiche inutile ai fini dello studio
+mod2 <- update(mod1,~.-Ospedale)
+summary(mod2) #R quadro diminuisce di poco ma per prferiamo un modello piu semplice
+
+#vediamo se la rimozione di osepdale e rilevante
+
+anova(mod1,mod2)#il test rifiuta l'ipotesi nulla, quindi i modelli sono diversi
+
+AIC(mod1,mod2)
+BIC(mod1,mod2)
+#entrambi i test hanno cambiamenti minimi, quini mi sento di poter rimuvo e ospedale in tranquilita
+
+#test multicollinearita
+vif(mod2) #tutti i valori sotto 5 quindi non abbiamo multicollinearita
+
+#allo stato attuale il modello a mio parere sarebbe corretto, sebbene le variabili anni madre e fumatrici vengono escluse dal T test
+# io le menterrei come varibili di controllo. Ma per ricurezza faro un modello con meno variabili e vedro se performa meglio
+mod3 <- update(mod2,~.-Anni.madre)
+summary(mod3)
+
+anova(mod2,mod3)
+
+AIC(mod2,mod3)
+BIC(mod2,mod3)
+#entrambi i test hanno cambiamenti minimi, quini mi sento di poter rimuvo e ospedale in tranquilita
+
+#test multicollinearita
+vif(mod3) #tutti i valori sotto 5 quindi non abbiamo multicollinearita
+
+#anche in questo caso non abbiamo multicollinearita e dai tesi i modelli resultato uguali
+
+#proviamo a togliere fumatrici
+mod4 <- update(mod3,~.-Fumatrici)
+summary(mod4)
+
+anova(mod3,mod4)
+
+AIC(mod3,mod4)
+BIC(mod3,mod4)
+#entrambi i test hanno cambiamenti minimi, quini mi sento di poter rimuvo e ospedale in tranquilita
+
+#test multicollinearita
+vif(mod4) #tutti i valori sotto 5 quindi non abbiamo multicollinearita
+
+#da tutti i test ci risulta che la rimuzione di Anni.madre e Fumatrici non fa modificare la qualita del modello
+#facciamo un ultimo test, creando un modello in cui evidenziamo che peso,lunghezza,circonferenza e gestazione anno crescita logaritmica
+mod5<- lm(I(log(Peso))~
+            N.gravidanze+
+            I(log(Gestazione))+
+            I(log(Lunghezza))+
+            I(log(Cranio))+
+            Tipo.parto+
+            Sesso,
+          data=neonati.filtrato)
+summary(mod5)
+
+#confrontare i modelli con Peso e log(Peso) non e possibile, poiche la variabile target e a una crescita diversa e quindi qavranno segno diverso
+#Rquadro del modello pero e migliore per il modello 5
+
+vif(mod5) #test di multicollinearita per sicurezza
+
+mod6 <- update(mod5,~.+Fumatrici)
+summary(mod6)
+
+mod7 <- update(mod5,~.+Anni.madre)
+summary(mod7)
+
+mod8 <- update(mod5,~.+Fumatrici+Anni.madre)
+summary(mod8)
+
+#confrontiamo i modelli con crescita logaritmica che hanno le variabili di controllo fumatrici e Anni.madre
+
+anova(mod5,mod6)#il test accetta ipotesi di uguaglianza
+anova(mod5,mod7)#il test accetta ipotesi di uguaglianza
+anova(mod5,mod8)#il test accetta ipotesi di uguaglianza
+#avere una delle variabili o entrmabe nonc cambia
 
 
+AIC(mod5,mod6,mod7,mod8)
+BIC(mod5,mod6,mod7,mod8)
+#entrambe le stime dicono che il modello migliore e il 5
+
+#personalmente intendo tenere le variabili di controllo Anni.madre e Fumatrici poiche la qualita del modello non cambia di molto 
+
+vif(mod8) #test di multicollinearita per sicurezza
+
+#faccimao ora una disgnostica dei residui
+par(mfrow=c(2,2))
+plot(mod8)
+
+#test sui residui
+
+#test di normalita --> ipotes di normalita
+shapiro.test(residuals(mod8))#Rifiutiamo il test di nornalita
+#quindi i residui non sono perfettamente normali
+
+#test di Omoschedasticità --> ipotesi di omoschedacita
+bptest(mod8)#rifiutiamo ipotesi o (NOT STONCKS)
+
+#test di incorellazione 
+dwtest(mod8)#Accetriamo ipoetesi (quindi non ce incorelazione)
 
 
+#LEVERAGE
+#calcolimao i leverage
+par(mfrow=c(1,1))
+lev <- hatvalues(mod8)
+plot(lev)
+#definiamo un valore soglia
+p=sum(lev)
+n<- nrow(neonati.filtrato)
+soglia=2*p/n
+abline(h= soglia,col=2)
+
+#stampiamole
+lev[lev>soglia]#queste sono le osservazioni più lontane rispetto alle altre nello spazio dei regressori
+
+#OUTLIARS
+plot(rstudent(mod8))
+abline(h=c(-2,2),col=2)
+
+#ce anche una funzione di MASS
+outlierTest(mod8)
+
+#per valutare sia leverers che outliars abbiamo la distanza di cook
+cook<-cooks.distance(mod8)
+plot(cook)
+max(cook)
 
 
 
