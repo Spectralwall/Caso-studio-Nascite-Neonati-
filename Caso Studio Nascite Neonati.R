@@ -12,6 +12,9 @@ library(magrittr)
 library(corrplot)
 library(car)
 library(lmtest)
+library(sandwich)
+library(estimatr)
+library(dplyr)
 
 
 #FUNZIONI
@@ -479,7 +482,7 @@ ggplot(data = neonati.filtrato)+
 #ipotiziamo una modello con crescita quadratica
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Lunghezza,col=Sesso))+
-  stat_smooth(aes(x=Peso,y=Lunghezza,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  stat_smooth(aes(x=Peso,y=Lunghezza,col=Sesso),method = "lm", formula = y ~ x + I(1/x), size = 1)+
   labs(title="Correlazione Peso-Lunghezza per Sesso")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
@@ -503,7 +506,7 @@ ggplot(data = neonati.filtrato)+
 #modello lineare con crescita quadratica
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
-  stat_smooth(aes(x=Peso,y=Cranio,col=Sesso),method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  stat_smooth(aes(x=Peso,y=Cranio,col=Sesso),method = "lm", formula = y ~ x + I(1/x), size = 1)+
   labs(title="Correlazione Peso-Cranio per Sesso")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
@@ -531,6 +534,14 @@ ggplot(data = neonati.filtrato)+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Gestazione,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Gestazione,col=Sesso),method = "lm", formula = y ~ x + I(1/x), size = 1)+
+  labs(title="Correlazione Peso-Gestazione per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+
 #in tutte queste variabili i dati crescono in modo logaritmico
 
 #ma ce un problema nello studio di queste variabili,aho paura che alcune siano troppo correlate e diano problemi di multicollinearita
@@ -547,6 +558,8 @@ mod1<- lm(Peso~
             Sesso,
           data=neonati.filtrato)
 summary(mod1)
+
+
 
 #sinceramente mi sento di rimuovere da questo modello la variabile ospedale poiche inutile ai fini dello studio
 mod2 <- update(mod1,~.-Ospedale)
@@ -592,7 +605,7 @@ BIC(mod3,mod4)
 
 #test multicollinearita
 vif(mod4) #tutti i valori sotto 5 quindi non abbiamo multicollinearita
-
+  
 #da tutti i test ci risulta che la rimuzione di Anni.madre e Fumatrici non fa modificare la qualita del modello
 #facciamo un ultimo test, creando un modello in cui evidenziamo che peso,lunghezza,circonferenza e gestazione anno crescita logaritmica
 mod5<- lm(I(log(Peso))~
@@ -631,7 +644,7 @@ AIC(mod5,mod6,mod7,mod8)
 BIC(mod5,mod6,mod7,mod8)
 #entrambe le stime dicono che il modello migliore e il 5
 
-#personalmente intendo tenere la variabile di controllo Fumatrici 
+#personalmente intendo tenere la variabile di controllo Fumatrici e Anni madre
 #poiche la qualita del modello non cambia di molto e mi sembra una variabile di controllo da mantere
 
 #test per la multicollinearita
@@ -676,35 +689,31 @@ max(cook)
 #dalle analisi notiamo che abbiamo un punto outliars in particolare che influneza il dataset, ovvero la registrazione 1551
 #proviamo a toglierla e riseguire il modello
 
-neonati.filtrato2= neonati.filtrato[-1549,] 
-
-mod9<- lm(I(log(Peso))~
+mod9<- lm(log(Peso)~
             N.gravidanze+
-            I(log(Gestazione))+
-            I(log(Lunghezza))+
-            I(log(Cranio))+
+            log(Gestazione)+
+            log(Lunghezza)+
+            log(Cranio)+
             Tipo.parto+
-            Fumatrici+
             Sesso,
-          data=neonati.filtrato2)
+          data=neonati.filtrato)
 summary(mod9)
+
+par(mfrow=c(2,2))
+plot(mod9,id.n = 10)
+#ci sono degli outliars che fatto leva sul modello
 
 #Rieseguiamo i test
 #test di normalita --> ipotes di normalita
-shapiro.test(residuals(mod9))#Rifiutiamo il test di nornalita
-#quindi i residui non sono perfettamente normali
+shapiro.test(residuals(mod9))
 
 #test di Omoschedasticità --> ipotesi di omoschedacita
-bptest(mod9)#rifiutiamo ipotesi di non omoschedasticita (NOT STONCKS)
-#il modello e omoschedastico aka a poca varianza
+bptest(mod9)
 
 #test di incorellazione 
-dwtest(mod9)#Accetriamo ipoetesi (quindi non ce incorelazione)
+dwtest(mod9)
 
-par(mfrow=c(2,2))
-plot(mod9)
-
-outlierTest(mod9)
+#il modello risulta eterostecastico e non normale
 
 #per valutare sia leverers che outliars abbiamo la distanza di cook
 cook<-cooks.distance(mod9)
@@ -714,86 +723,33 @@ plot(mod9, 5, id.n = 5)
 plot(mod9, 4, id.n = 5)
 max(cook)
 
+#individuiamo valori che hanno distanza di cook molto alta e eliminiamoli
+influential <- cook[(cook > (3 * mean(cook, na.rm = TRUE)))]
+names_of_influential <- names(influential)
+influential
 
+neonati.filtrato <- neonati.filtrato %>% anti_join(neonati.filtrato[names_of_influential,])
 
+#riadestriamo e verifichiamo
 
+#togliamo altri outliars
+#per valutare sia leverers che outliars abbiamo la distanza di cook
+cook<-cooks.distance(mod9)
+influential <- cook[(cook > (10 * mean(cook, na.rm = TRUE)))]
+names_of_influential <- names(influential)
+influential
 
+neonati.filtrato <- neonati.filtrato %>% anti_join(neonati.filtrato[names_of_influential,])
 
+test <- data.frame(N.gravidanze = 3,Gestazione=39)
 
+test
+predict(mod9, newdata = test)
 
+#proviamo ora a cambiare lo standard error con il robust standard error, per risolvere 
+coeftest(mod9, vcov = vcovHC(mod9, "HC1"))
+#sembra che ci sia un piccolo miglioramento
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#myalvm <- alvm.fit(mod9, model = "linear")
+#myalvm
 
