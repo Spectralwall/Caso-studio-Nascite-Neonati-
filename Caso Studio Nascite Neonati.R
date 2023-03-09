@@ -15,6 +15,7 @@ library(lmtest)
 library(sandwich)
 library(estimatr)
 library(dplyr)
+library(skedastic)
 
 
 #FUNZIONI
@@ -541,6 +542,12 @@ ggplot(data = neonati.filtrato)+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+#prima di inizare a creare i modelli dividiamo il dataset in training e test set
+neonati.filtrato$id <- 1:nrow(neonati.filtrato)
+
+#use 70% of dataset as training set and 30% as test set 
+train <- neonati.filtrato %>% dplyr::sample_frac(0.95)
+test  <- dplyr::anti_join(neonati.filtrato, train, by = 'id')
 
 #in tutte queste variabili i dati crescono in modo logaritmico
 
@@ -556,7 +563,7 @@ mod1<- lm(Peso~
             Tipo.parto+
             Ospedale+
             Sesso,
-          data=neonati.filtrato)
+          data=train)
 summary(mod1)
 
 
@@ -615,7 +622,7 @@ mod5<- lm(I(log(Peso))~
             I(log(Cranio))+
             Tipo.parto+
             Sesso,
-          data=neonati.filtrato)
+          data=train)
 summary(mod5)
 
 #confrontare i modelli con Peso e log(Peso) non e possibile, poiche la variabile target e a una crescita diversa e quindi qavranno segno diverso
@@ -696,7 +703,7 @@ mod9<- lm(log(Peso)~
             log(Cranio)+
             Tipo.parto+
             Sesso,
-          data=neonati.filtrato)
+          data=train)
 summary(mod9)
 
 par(mfrow=c(2,2))
@@ -728,9 +735,8 @@ influential <- cook[(cook > (3 * mean(cook, na.rm = TRUE)))]
 names_of_influential <- names(influential)
 influential
 
-neonati.filtrato <- neonati.filtrato %>% anti_join(neonati.filtrato[names_of_influential,])
-
-#riadestriamo e verifichiamo
+train <- train %>% anti_join(train[names_of_influential,])
+#riadestriamo e vediamo i test
 
 #togliamo altri outliars
 #per valutare sia leverers che outliars abbiamo la distanza di cook
@@ -739,17 +745,32 @@ influential <- cook[(cook > (10 * mean(cook, na.rm = TRUE)))]
 names_of_influential <- names(influential)
 influential
 
-neonati.filtrato <- neonati.filtrato %>% anti_join(neonati.filtrato[names_of_influential,])
+train <- train %>% anti_join(train[names_of_influential,])
+#riadestriamo e vediamo i test
 
-test <- data.frame(N.gravidanze = 3,Gestazione=39)
-
-test
-predict(mod9, newdata = test)
+#finalmente i test son soddisfacenti, ma abbiamo un problema di eteschedasticità
 
 #proviamo ora a cambiare lo standard error con il robust standard error, per risolvere 
 coeftest(mod9, vcov = vcovHC(mod9, "HC1"))
-#sembra che ci sia un piccolo miglioramento
+#sembra che ci sia un piccolo miglioramento ma nulla di rilevante
 
-#myalvm <- alvm.fit(mod9, model = "linear")
-#myalvm
+#creiamo degli esempi fittizi
+testMedian <- data.frame(N.gravidanze = 3,Gestazione=39,Lunghezza=500,Cranio=340,Tipo.parto="Nat",Sesso="F")
+
+testMean <- data.frame(N.gravidanze = 3,Gestazione=39,Lunghezza=494.6958,Cranio=340.0292,Tipo.parto="Nat",Sesso="F")
+
+#facciamo delle predizioni
+predMedian = predict(mod9, newdata = testMedian)
+predMean = predict(mod9, newdata = testMean)
+predictionTest = predict(mod9, newdata = test)
+
+exp(predMedian)
+exp(predMean)
+
+rmse <- sqrt(sum((exp(predictionTest) - test$Peso)^2)/length(test$Peso))
+c(RMSE = rmse, R2=summary(mod9)$r.squared)
+
+#avPlots(mod9)
+
+
 
