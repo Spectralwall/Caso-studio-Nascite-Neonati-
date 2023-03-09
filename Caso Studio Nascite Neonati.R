@@ -15,7 +15,7 @@ library(lmtest)
 library(sandwich)
 library(estimatr)
 library(dplyr)
-library(skedastic)
+library(Metrics)
 
 
 #FUNZIONI
@@ -767,10 +767,21 @@ predictionTest = predict(mod9, newdata = test)
 exp(predMedian)
 exp(predMean)
 
-rmse <- sqrt(sum((exp(predictionTest) - test$Peso)^2)/length(test$Peso))
-c(RMSE = rmse, R2=summary(mod9)$r.squared)
+#rmse <- sqrt(sum((exp(predictionTest) - test$Peso)^2)/length(test$Peso))
+#c(RMSE = rmse, R2=summary(mod9)$r.squared)
 
-#avPlots(mod9)
+#calcoliamo la stima Root Mean Square Error
+#che misura l'errore medio eseguito dal modello nel prevedere l'esito di un'osservazione.
+rmse(test$Peso, exp(predictionTest))
+
+#calcolimao la stima MAE
+#simile al rsme ma è meno influenzata dagli outliars
+mae(test$Peso, exp(predictionTest))
+
+#faccimao infine un plot che mostra per ogni regressore (sulle x) la retta con la variabile target sulle y
+avPlots(mod9)
+
+
 
 
 
