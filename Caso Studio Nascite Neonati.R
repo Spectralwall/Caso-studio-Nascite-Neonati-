@@ -16,6 +16,7 @@ library(sandwich)
 library(estimatr)
 library(dplyr)
 library(Metrics)
+library(MASS)
 
 
 #FUNZIONI
@@ -780,8 +781,4 @@ mae(test$Peso, exp(predictionTest))
 
 #faccimao infine un plot che mostra per ogni regressore (sulle x) la retta con la variabile target sulle y
 avPlots(mod9)
-
-
-
-
 
