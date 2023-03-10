@@ -505,6 +505,15 @@ ggplot(data = neonati.filtrato)+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())
 
+#con modello lineare
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
+  stat_smooth(aes(x=Peso,y=Cranio,col=Sesso),method = "lm",size = 1)+
+  labs(title="Correlazione Peso-Cranio per Sesso")+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
+
 #modello lineare con crescita quadratica
 ggplot(data = neonati.filtrato)+
   geom_point(aes(x=Peso,y=Cranio,col=Sesso))+
@@ -703,9 +712,12 @@ mod9<- lm(log(Peso)~
             log(Lunghezza)+
             log(Cranio)+
             Tipo.parto+
-            Sesso,
+            Sesso+
+            Fumatrici,
           data=train)
 summary(mod9)
+
+vif(mod9)
 
 par(mfrow=c(2,2))
 plot(mod9,id.n = 10)
@@ -756,9 +768,9 @@ coeftest(mod9, vcov = vcovHC(mod9, "HC1"))
 #sembra che ci sia un piccolo miglioramento ma nulla di rilevante
 
 #creiamo degli esempi fittizi
-testMedian <- data.frame(N.gravidanze = 3,Gestazione=39,Lunghezza=500,Cranio=340,Tipo.parto="Nat",Sesso="F")
+testMedian <- data.frame(Anni.madre=28,N.gravidanze = 3,Fumatrici=0,Gestazione=39,Lunghezza=500,Cranio=340,Tipo.parto="Nat",Sesso="F")
 
-testMean <- data.frame(N.gravidanze = 3,Gestazione=39,Lunghezza=494.6958,Cranio=340.0292,Tipo.parto="Nat",Sesso="F")
+testMean <- data.frame(Anni.madre=28,N.gravidanze = 3,Fumatrici=0,Gestazione=39,Lunghezza=494.6958,Cranio=340.0292,Tipo.parto="Nat",Sesso="F")
 
 #facciamo delle predizioni
 predMedian = predict(mod9, newdata = testMedian)
