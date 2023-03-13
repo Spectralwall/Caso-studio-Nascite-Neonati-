@@ -719,8 +719,26 @@ summary(mod9)
 
 vif(mod9)
 
+#una sola schermata
 par(mfrow=c(2,2))
+plot(mod9,id.n = 5)
+#singole schermate
 plot(mod9,id.n = 10)
+plot(mod9,1,id.n = 10)
+plot(mod9,2,id.n = 10)
+plot(mod9,3,id.n = 10)
+plot(mod9,4,id.n = 10)
+plot(mod9,5,id.n = 10)
+
+
+ggplot(data = neonati.filtrato)+
+  geom_point(aes(x=Peso,y=Lunghezza,col=Sesso))+
+  labs(title="Correlazione Peso-Lunghezza per Sesso")+
+  geom_vline(aes(xintercept=2400),
+             color="red", linetype="dashed", linewidth=1)+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())
+
 #ci sono degli outliars che fatto leva sul modello
 
 #Rieseguiamo i test
@@ -731,7 +749,7 @@ shapiro.test(residuals(mod9))
 bptest(mod9)
 
 #test di incorellazione 
-dwtest(mod9)
+  dwtest(mod9)
 
 #il modello risulta eterostecastico e non normale
 
@@ -751,6 +769,11 @@ influential
 train <- train %>% anti_join(train[names_of_influential,])
 #riadestriamo e vediamo i test
 
+#-------------------------------------------------------------------------------
+#QUESTA PARTE DI CODICE è DA UTILIZZARE SE L'IPOTESI DI NORMALITA NON VIENE SODDISFATTA 
+#DOPO LA PRIMA PULIZIA DI OUTLIERS
+#il tutto dipende dalla divisione casuale in train e test
+
 #togliamo altri outliars
 #per valutare sia leverers che outliars abbiamo la distanza di cook
 cook<-cooks.distance(mod9)
@@ -760,6 +783,7 @@ influential
 
 train <- train %>% anti_join(train[names_of_influential,])
 #riadestriamo e vediamo i test
+#-------------------------------------------------------------------------------
 
 #finalmente i test son soddisfacenti, ma abbiamo un problema di eteschedasticità
 
@@ -768,9 +792,9 @@ coeftest(mod9, vcov = vcovHC(mod9, "HC1"))
 #sembra che ci sia un piccolo miglioramento ma nulla di rilevante
 
 #creiamo degli esempi fittizi
-testMedian <- data.frame(Anni.madre=28,N.gravidanze = 3,Fumatrici=0,Gestazione=39,Lunghezza=500,Cranio=340,Tipo.parto="Nat",Sesso="F")
+testMedian <- data.frame(Anni.madre=28,N.gravidanze = 3,Fumatrici=0,Gestazione=39,Lunghezza=500,Cranio=340,Tipo.parto="Nat",Sesso="F",Fumatrici=0)
 
-testMean <- data.frame(Anni.madre=28,N.gravidanze = 3,Fumatrici=0,Gestazione=39,Lunghezza=494.6958,Cranio=340.0292,Tipo.parto="Nat",Sesso="F")
+testMean <- data.frame(Anni.madre=28,N.gravidanze = 3,Fumatrici=0,Gestazione=39,Lunghezza=494.6958,Cranio=340.0292,Tipo.parto="Nat",Sesso="F",Fumatrici=0)
 
 #facciamo delle predizioni
 predMedian = predict(mod9, newdata = testMedian)
@@ -785,11 +809,15 @@ exp(predMean)
 
 #calcoliamo la stima Root Mean Square Error
 #che misura l'errore medio eseguito dal modello nel prevedere l'esito di un'osservazione.
-rmse(test$Peso, exp(predictionTest))
+rmse_val =rmse(test$Peso, exp(predictionTest))
+rmse_val
 
 #calcolimao la stima MAE
 #simile al rsme ma è meno influenzata dagli outliars
-mae(test$Peso, exp(predictionTest))
+mae_val= mae(test$Peso, exp(predictionTest))
+mae_val
+
+(rmse_val+mae_val)/2
 
 #faccimao infine un plot che mostra per ogni regressore (sulle x) la retta con la variabile target sulle y
 avPlots(mod9)
