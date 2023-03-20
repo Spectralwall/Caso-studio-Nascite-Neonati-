@@ -57,10 +57,10 @@ distribuzione_assoluta <- function(x){
 #indici di posizione, variabilità e forma
 analisi.quantitative <- function(x,y,z){
   
-  df=as.data.frame(cbind(summary(x)))
+  df=as.data.frame(cbind(round(summary(x),3)))
   colnames(df)<-c(y)
-  df2=data.frame(summary=c(max(x)-min(x),IQR(x),Mode(x),var(x),
-                              sd(x),CV(x),skewness(x),kurtosis(x)-3))
+  df2=data.frame(summary=c(max(x)-min(x),IQR(x),Mode(x),round(var(x),3),
+                              round(sd(x),3),round(CV(x),3),round(skewness(x),3),round(kurtosis(x)-3,3)))
   rownames(df2) <- c("Range","IQR","Mode","Var","SD","CV","Asymmetry","Curtosi")
   colnames(df2)<-c(y)
   
@@ -210,7 +210,7 @@ ggplot(data=df_freq, aes(x=reorder(row.names(df_freq), +fi), y=ni,fill=row.names
        y="Frequenza")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())+
-  scale_fill_discrete(labels = c("Fumatrici", "Non Fumatrici"))+
+  scale_fill_discrete(labels = c("Non Fumatrici", "Fumatrici"))+
   guides(fill=guide_legend(title="Classi",))
 
 #Gestazione---------------------------------------------------------------------
@@ -410,8 +410,11 @@ ggplot(data=neonati.filtrato)+
   theme(axis.title = element_text(),legend.position='none')
 
 #verificare che in alcuni ospedali si facciano più parti cesari
+#per questa ipotesi utilizziamo il test Chi quadro
+chisq.test(neonati.filtrato$Tipo.parto, neonati.filtrato$Ospedale, correct=FALSE)
+#siamo sopra la soglia, quindi accetiamo l'ipotesi di indipendenza
 
-#per questa ipotesi ci basta osservare la tabella di frequenza 
+#per questa ipotesi possiamo anche osservare la tabella di frequenza 
 distr_freq_ass_osp_tipo_parto = table(Ospedale,Tipo.parto)
 distr_freq_ass_osp_tipo_parto
 distr_freq_rel_osp_tipo_parto = table(Ospedale,Tipo.parto)/length(Ospedale)
